@@ -8,11 +8,15 @@ A class to advertise, send notifications and receive data from central looking f
 import UIKit
 import CoreBluetooth
 import os
+import CoreLocation // CoreLocation版
 
 class PeripheralViewController: UIViewController {
 
     @IBOutlet var textView: UITextView!
+    // CoreBluetooth版
     @IBOutlet var advertisingSwitch: UISwitch!
+    // CoreLocation版
+    @IBOutlet var advertisingSwitchForBeacon: UISwitch!
     
     var peripheralManager: CBPeripheralManager!
 
@@ -38,15 +42,46 @@ class PeripheralViewController: UIViewController {
     
     // MARK: - Switch Methods
 
+    // CoreBluetooth版
     @IBAction func switchChanged(_ sender: Any) {
         // All we advertise is our service's UUID.
         if advertisingSwitch.isOn {
-            peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID]])
+            peripheralManager.startAdvertising([
+                CBAdvertisementDataLocalNameKey: "ペリフェラル",
+                CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID],
+            ])
         } else {
             peripheralManager.stopAdvertising()
         }
     }
-
+    // CoreLocation版
+    @IBAction func switchChangedForBeacon(_ sender: Any) {
+        // All we advertise is our service's UUID.
+        if advertisingSwitchForBeacon.isOn {
+            // iBeaconのUUID.
+            let myProximityUUID = NSUUID(uuidString: "E20A39F4-73F5-4BC4-A12F-17D1AD07A969") // セントラル側にこのUUIDを受信対象に指定しておく
+            // iBeaconのIdentifier.
+            let myIdentifier = "akabeacon"
+            // Major.
+            let myMajor : CLBeaconMajorValue = 1
+            // Minor.
+            let myMinor : CLBeaconMinorValue = 2
+            // BeaconRegionを定義.
+            let myBeaconRegion = CLBeaconRegion(proximityUUID: myProximityUUID as! UUID,
+                                                major: myMajor,
+                                                minor: myMinor,
+                                                identifier: myIdentifier)
+            // Advertisingのフォーマットを作成.
+            let myBeaconPeripheralData = NSDictionary(
+                dictionary: myBeaconRegion.peripheralData(withMeasuredPower: nil)
+            )
+            // Advertisingを発信.
+            peripheralManager.startAdvertising(myBeaconPeripheralData as! [String : Any])
+        } else {
+            peripheralManager.stopAdvertising()
+        }
+    }
+    
     // MARK: - Helper Methods
 
     /*
